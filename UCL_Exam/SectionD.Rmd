@@ -1,0 +1,81 @@
+---
+title: "Section D"
+output: html_notebook
+---
+
+
+
+# Clearing the environment
+```{r}
+rm(list = ls())
+
+```
+
+
+```{r}
+Dataset_Raw = load("section_d.Rda")            #  -> Reading Rda
+
+```
+
+1.
+```{r}
+hist(medical_data$glucagon)
+hist(medical_data$log_glucagon)
+```
+
+
+2.
+Log_gluacon, since the distribution is almost normal.
+
+3.
+```{r}
+# medical_data$log_glucagon = log(medical_data$glucagon)
+```
+
+4.
+```{r}
+plot(medical_data$mass, medical_data$log_glucagon, xlab = "Mass kg", ylab = "log(Gluacon) ug/ml", main = "Cases of Diabetes Onset", xlim = c(10,80),ylim = c(-3,4),col =medical_data$diabetes)
+legend("topright", cex =1, legend= c("negative","positive"),pch = c(1,1),  col=c(1,2), horiz=F)
+
+```
+
+
+5.
+Yes, since it looks like if both the mass and the log_gluagon are higher then the probability of a posiotive is higher
+
+6.
+```{r}
+medical_data$log_glucagon_rs = scale(medical_data$log_glucagon)
+medical_data$mass_rs = scale(medical_data$mass)
+
+
+
+mean(medical_data$log_glucagon_rs)
+sd(medical_data$log_glucagon_rs)
+
+mean(medical_data$mass_rs)
+sd(medical_data$mass_rs)
+
+
+
+```
+They are standardized, the scale function subtracts the mean and divides by the standard deviation.
+
+
+
+
+7.
+```{r}
+# Splitting the Data
+Banana = 1
+set.seed(Banana)
+sample = sample.split(medical_data$glucose,SplitRatio = 0.60) # splits the data in the ratio mentioned in SplitRatio. After splitting marks these rows as logical TRUE and the the remaining are marked as logical FALSE
+train_data = subset(medical_data,sample ==TRUE)
+test_data  = subset(medical_data,sample ==FALSE)
+
+# Reset the row indexes, that have been scrambled in the sampling process
+rownames(train_data) <- NULL
+rownames(test_data) <- NULL
+```
+
+

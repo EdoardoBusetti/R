@@ -1,0 +1,87 @@
+---
+title: "Part1"
+author: "EE8US"
+output: html_notebook
+---
+
+# Loading the libraries
+```{r}
+library(ggplot2)   # For plotting
+library(MASS)      # For the Boston database and stepAIC function
+library(caret)     # for train() and train.control()
+library(dplyr)     # For functions like mutate, select, filter, arrange, group_by,summarise, rename
+library(tidyverse) # For function like Negate
+library(readr)     # To read csv files
+library(texreg)    # For the function screenreg()
+library(tidyr)     # For drop_na()
+library(caTools)   # For sample.split()
+library(klaR)      # Library for Naive Bayes
+```
+
+
+# Clearing the environment
+```{r}
+rm(list = ls())
+
+```
+
+1. Load the contents of the file into a dataframe
+```{r}
+Dataset_Raw = read_csv("sales.csv")
+```
+
+2.
+```{r}
+names(Dataset_Raw)
+```
+3.
+```{r}
+Dataset_Raw = rename(Dataset_Raw, wind = windspeed)
+names(Dataset_Raw)
+```
+
+4.
+```{r}
+dim(Dataset_Raw)[1]
+# Number rows = 113
+```
+
+5.
+```{r}
+beforeDelete = dim(Dataset_Raw)[1]
+
+Dataset_Raw = drop_na(Dataset_Raw)
+
+afterDelete = dim(Dataset_Raw)[1]
+
+rowsDropped = beforeDelete - afterDelete
+
+print(rowsDropped)
+
+colSums(is.na(Dataset_Raw)) # cCheck that Nas = 0
+
+```
+
+
+6.
+```{r}
+Dataset_Raw$date = NULL
+names(Dataset_Raw)
+```
+
+
+7.
+```{r}
+Dataset_Raw = mutate(Dataset_Raw, staff = factor(staff, levels = c(1,2,3,4) , labels = c("Harry","Sara","Tom","Kate")))
+table(Dataset_Raw$staff)
+
+```
+
+
+8.
+```{r}
+Dataset_Raw$food = Dataset_Raw$pizza + Dataset_Raw$pasta + Dataset_Raw$wraps
+
+head(Dataset_Raw)
+```
+

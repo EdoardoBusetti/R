@@ -1,0 +1,223 @@
+---
+title: "Section E"
+output: html_notebook
+---
+
+# Clearing the environment
+```{r}
+rm(list = ls())
+
+```
+
+
+```{r}
+Dataset_Raw = load("section_e.Rda")            #  -> Reading Rda
+
+```
+
+
+1.
+```{r}
+
+LogisticRegression_Classifier = glm(diabetes ~log_glucagon_rs+mass_rs,data = train_data, family = "binomial"(link = 'logit') )
+
+```
+
+2.
+```{r}
+
+Predict_glm = predict(LogisticRegression_Classifier,type = "response", newdata = test_data)
+
+
+
+Predict_glm = factor(ifelse(Predict_glm > 0.5,"pos","neg"))
+
+```
+
+
+
+3.
+```{r}
+# Confusion Matrix
+ConfusionMatrix_glm = t(table(test_data$diabetes, Predict_glm))
+print(ConfusionMatrix_glm)
+```
+
+4.
+```{r}
+# 54
+sum(test_data$diabetes == "pos")
+
+```
+
+5.
+30 cases where correcly identified as positive
+
+
+6.
+```{r}
+TPR = ConfusionMatrix_glm[4]/sum(ConfusionMatrix_glm[3:4])
+
+print(TPR)
+print(30/54)
+
+
+
+```
+7.
+```{r}
+
+Predict_glm_30 = predict(LogisticRegression_Classifier,type = "response", newdata = test_data)
+
+
+
+Predict_glm_30 = factor(ifelse(Predict_glm_30 > 0.3,"pos","neg"))
+
+ConfusionMatrix_glm_30 = t(table(test_data$diabetes, Predict_glm_30))
+print(ConfusionMatrix_glm_30)
+
+```
+
+
+8.
+```{r}
+TPR_30 = ConfusionMatrix_glm_30[4]/sum(ConfusionMatrix_glm_30[3:4])
+
+print(TPR_30)
+```
+
+9.
+Because it`s better to identify a true positive with more accuracy even if that means that the amount of false nagatives is higher, since if we don't tell a potencial diabetes patient about it is riskier than telling a non-diabetes person that he could have diabetes, since in the first case it could mean thsome other exams to make sure.
+
+10.
+```{r}
+FPR = ConfusionMatrix_glm[2]/sum(ConfusionMatrix_glm[1:2])
+
+FPR_30 = ConfusionMatrix_glm_30[2]/sum(ConfusionMatrix_glm_30[1:2])
+
+print(FPR)
+print(FPR_30)
+```
+
+The false positive rate is higher in the second one, as we decreased the treshold for the positive flag.
+
+11.
+```{r}
+train_data_x = select(train_data, log_glucagon_rs, mass_rs)
+head(train_data_x,2)
+dim(train_data_x)
+
+train_data_y = select(train_data, diabetes)
+head(train_data_y,2)
+dim(train_data_y)
+
+test_data_x = select(test_data, log_glucagon_rs, mass_rs)
+head(test_data_x,2)
+dim(test_data_x)
+
+test_data_y = select(test_data, diabetes)
+head(test_data_y,2)
+dim(test_data_y)
+
+```
+
+
+12.
+```{r}
+KNN_Classifier = train(diabetes ~ log_glucagon_rs + mass_rs, data = train_data, method = "knn",
+ # preProcess = c("center", "scale"),
+ tuneGrid = expand.grid(k = 1:9),
+ tuneLength = 5)
+print(KNN_Classifier)
+```
+The optimal model from the one from 1 to 9 NN is the one with k = 9
+
+
+
+13.
+```{r}
+
+Predict_KNN = predict(KNN_Classifier, newdata = test_data)
+
+# Confusion Matrix
+ConfusionMatrix_KNN = table(test_data$diabetes, Predict_KNN)
+print(ConfusionMatrix_KNN)
+
+
+Error_Test_KNN = mean(test_data$diabetes != Predict_KNN)
+Accuracy_KNN = round(1-Error_Test_KNN,6)
+cat('\n\n The Misclassification error is: ',1-Accuracy_KNN,'\n')
+
+
+
+```
+
+
+14.
+```{r}
+library(class)
+train_data_y = unlist(train_data_y)
+
+K_values = c(seq(2,12,2),seq(15,55,5),seq(60,200,10))
+
+MisclassRate = seq(0,30)
+
+for( i in 1:30){
+  k_val = K_values[i]
+  knn_classifier_loop = knn(train_data_x, test_data_x, train_data_y, k = k_val, l = 0, prob = FALSE, use.all = TRUE)
+  
+  #print(k_val)
+  
+
+
+
+Error_Test_KNN_loop = mean(test_data$diabetes != knn_classifier_loop)
+Accuracy_KNN_loop = round(1-Error_Test_KNN_loop,6)
+MisclassRate[i] = 1-Accuracy_KNN_loop
+  
+  
+  
+  
+  
+}
+
+MisclassRate = MisclassRate[1:30]
+
+plot(MisclassRate ~K_values )
+
+
+```
+
+15.
+
+```{r}
+Accuracy_matrix = seq(1,20)
+
+# Fixing k at 9
+for(i in 1:20){
+  
+  sample = sample.split(medical_data$glucose,SplitRatio = 0.90) 
+Dataset_train = subset(medical_data,sample ==TRUE)
+Dataset_test  = subset(medical_data,sample ==FALSE)
+
+
+knn_classifier_2 = train(diabetes ~ log_glucagon_rs + mass_rs, data = Dataset_train, method = "knn",
+ tuneGrid = expand.grid(k = 9))
+  
+
+Predict_KNN2 = predict(KNN_Classifier, newdata = Dataset_test)
+
+
+Error_Test_KNN2 = mean(Dataset_test$diabetes != Predict_KNN2)
+Accuracy_KNN2 = round(1-Error_Test_KNN2,6)
+
+Accuracy_matrix[i] = Accuracy_KNN2
+  
+}
+
+AveragePerformance_Accuracy = mean(Accuracy_matrix)
+
+print(AveragePerformance_Accuracy)
+```
+
+

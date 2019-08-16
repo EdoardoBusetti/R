@@ -1,0 +1,168 @@
+---
+title: "Section C"
+output: html_notebook
+---
+
+
+
+# Clearing the environment
+```{r}
+rm(list = ls())
+
+```
+
+
+```{r}
+Dataset_Raw = load("section_b.Rda")            #  -> Reading Rda
+
+```
+
+1.
+```{r}
+# names(sales) 
+table(sales$pizza)
+```
+
+2.
+```{r}
+
+lm_1   <- lm(pizza ~ 1, data=sales)
+lm_All <- lm(pizza ~ ., data=sales)
+
+
+MaxSteps = dim(sales)[2]
+scope_parameter <- list(lower = lm_1, upper = lm_All)
+
+
+
+StepAIC_Result <- stepAIC(lm_1, 
+                       direction = 'forward',
+                       scope = scope_parameter,
+                       steps = MaxSteps)
+
+```
+
+The optimal model is
+
+```{r}
+model1 = lm(pizza ~ weekday + humidity + staff + dessert + total_sales +soda, data = sales)
+```
+
+
+
+3.
+```{r}
+plot(model1)
+```
+
+Row 18 is highlighted because it is a observation with high leverage, and it`s ouside of cook`s distance, that means that that observation is most probably an outlier and we should decide how we want to deal with  it, since it can change the regression result.
+
+4.
+```{r}
+sales[18,]
+```
+5.
+
+
+```{r}
+summary(sales)
+
+```
+Yes, since all of the food is way higher than the mean and median, and for most of them colum 18 has twice the amount of median sales.
+While for chips, juice the number of sales is unusually low.
+It must have been a peculiar day, like a day when there was a sports event near the Bar in exam.
+
+
+
+6.
+```{r}
+RSS = sum((summary(model1)$residuals)^2)
+print(RSS)
+```
+
+7.
+```{r}
+EstimatedRMSE = sqrt(RSS/(43-11))
+print(EstimatedRMSE)
+```
+
+8.
+Degrees of freedom lost during the regression
+
+9.
+RMSE the Root Mean Squared Error, since it gives an idea of how high is the root of the mean of the squared distance of the real value from the predicted value.
+
+10.
+```{r}
+model_weekday = lm(pizza ~ weekday, data = sales)
+
+summary(model_weekday)
+```
+11.
+
+We can see that the level "monday" is the only nbon significant one (at 95% confidence) so it`s coefficient is statistically equal to 0 , the level "Thuesday" is significant to a 99% confidence level,the levl Tuesday is significant to a 99.9% confidence and the level Wednesday is significant to 99% confidence
+
+We can see that in the tranforming of the chr variable into a group of (nlevels -1 ) binaries ( To avoid perfect collinearity) the binary variable related to friday has been left out.
+This means that the interpretation is, for example for the Tuesday Dummy:
+When it`s Tuesday the pizza sales are ion average 4.53 higher than the average of the other days.
+
+And when all the dummies considered in the model are = 0, that is the average sales for the day friday (since that is the day that has been left out.)
+
+12.
+```{r}
+anova(model_weekday,model1)
+```
+
+13.
+The null hypothesis of the anova is
+H0: The unrestricted model has NO more explanatory power than the restricted model.
+
+Since the p-value of the anova (F-test) is lower than 0.05 we can say that we reject the null hypothesis with a confidence level of 95%
+That means that the explainatory power of the unrestricted model (model1, from stepwise selection) is better for explaining the dependent variable, than the restricted model (model_weekday)
+
+
+14.
+```{r}
+summary(model1)
+```
+The model is not of any practical use for predicting pizza sales, because the adjusted Rsqaured is really low, 0.569 and that means that the model can only explain around 60% of the variance of the dependent variable.
+Also, this adj Rsqaured is calculated using the residuals from the train set data, that means that if we actually test this model on new data ( Test set) we would almost certainly get a lower Rsquared and a lower Adj Rsquared.
+
+15.
+Because doing cross validation, for n folds, we train the model on n-1 folds and then test it on the "never seen before" data present in the remaining 1 fold, and we repeat this precess for n times leaving out each time a different fold.
+This process ensures (If we do it for an accurate amount of folds (n)) that we would get a more accurate estimate of the Rsquared  adj Rsquared and RMSE parameters, since they would derive by testing the model on actual new data, and not from train set data.
+
+16.
+This argument repeats the cross validation process for k times, that ensures that even if for some reasons some folds made in the preocess are biased, this bias would disapear by repeating the process k times and then taking the mans results.
+
+17.
+the maximum number of fold would be the number of rows poresent in the dataset, this CV method is called Leave One Out and it`s computationally very expensive, since we would have to train the model Nrows times
+
+
+18.
+```{r}
+Banana = 10
+set.seed(Banana)
+
+regressControl  = trainControl(method="repeatedcv",
+                        number = 10,
+                        repeats = 100
+                        )      
+
+Model1_CV    = train(pizza ~  weekday,
+               data = sales,
+               method  = "lm",
+               trControl = regressControl)
+
+Model2_CV    = train(pizza ~  weekday + temp + humidity + wind,
+               data = sales,
+               method  = "lm",
+               trControl = regressControl)
+
+
+summary(Model1_CV)
+summary(Model2_CV)
+```
+
+19.
+The best model to use in this case is the model with both the day and the weather columns, since the cross validated adjusted Rsquared is higher and the RMSE is lower.

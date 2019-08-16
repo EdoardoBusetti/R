@@ -1,0 +1,108 @@
+---
+title: "Section B"
+output: html_notebook
+---
+
+
+# Clearing the environment
+```{r}
+rm(list = ls())
+
+```
+
+
+```{r}
+Dataset_Raw = load("section_b.Rda")            #  -> Reading Rda
+
+
+```
+
+
+1.
+```{r}
+#names(sales)
+TotalSoda = sum(sales$soda)
+
+print(TotalSoda)
+```
+
+
+2.
+```{r}
+max(sales$wraps)
+
+```
+
+
+3.
+```{r}
+mean(sales$total_sales[sales$staff == "Harry"])
+```
+
+4.
+```{r}
+mean(sales$total_sales[sales$staff == "Sara"])
+
+```
+
+
+5.
+```{r}
+
+Harry_Sales = sales$total_sales[sales$staff == "Harry"]
+Sara_Sales  = sales$total_sales[sales$staff == "Sara"]
+t.test(Harry_Sales,Sara_Sales, mu = 0,  alt = "two.sided", conf = 0.95 )
+```
+
+6.
+At a significance of 0.95 the alpha is 0.05, since we are doing a two sided test and the p-value is 0.06028, which is higher than the alpha, we don`t reject the null hypothesis that the average difference in sales made by Harry and Sara is 0
+
+7.
+```{r}
+MaxHumilty = max(sales$humidity)
+MinHumilty = min(sales$humidity)
+
+print(MaxHumidity)
+
+print(MinHumidity)
+```
+
+8.
+```{r}
+attach(sales)
+model1 = lm(coffee ~ temp)
+model2 = lm(coffee ~ humidity)
+model3 = lm(coffee ~ wind)
+detach(sales)
+```
+
+9.
+```{r}
+screenreg(list(model1,model2,model3))
+```
+
+10.
+As we can see from the resuylts of the regression, the coefficient for "temp" is significant and negative, that means than on average a 1 point increase in the variable temp means a 0.59 point decrease in the variable coffee, this relationship is significant to a confidece of 99.9%
+
+The coefficient for humidity is significant with a level of 99.9% and is positive, that means that on average a 1 point increase in the variabl;e humidity will be reflected as a 0.4 increase in the coffee variable.
+
+The coefficient for the variable wind is non significant at a 95% confidence, that means that the coefficient is statistically equal to 0, and there is no linear relationship between the variable wind and the variable coffee.
+
+11.
+```{r}
+# Humidity = c(30,80)
+dataframe_ToPredict = data.frame(humidity = c(30,80))
+
+predict(model2,dataframe_ToPredict)
+```
+We can see from the results that the predicted coffees sold when the humidity is 30 is 10.32037, when the humidity is 80 is 30.29006
+
+If we wanted we could have specified also the levels for the other variable in the dataframe.
+
+
+
+
+
+
+
+sales
