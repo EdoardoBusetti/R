@@ -1,0 +1,321 @@
+---
+title: "Taxi fare prediction - Data cleaning and features engineering"
+author: "Edoardo Busetti"
+date: "August 7, 2019"
+output:
+  html_document:
+    toc: true # table of content true
+    toc_depth: 3  # upto three depths of headings (specified by #, ## and ###)
+    number_sections: False  # if you want number sections at each table header
+  pdf_document: default
+---
+# Introduction
+In this file I will clean the data from the NYC yellow taxi dataset from 2018 and then in a subsequent file I'm gonna analyse the data.
+# Setup
+##Clear The Environment
+```{r}
+rm(list = ls())
+```
+
+##Load Libraries
+```{r}
+library(readr)
+library(dplyr)
+library(stringr)
+library(purrr)
+library(tidyr)
+```
+
+
+##**Load the data:**
+```{r}
+Taxi_OriginalData = read_csv("Datasets/Taxi2017_Dataset.csv")
+```
+##Check the structure, the names and check for eventual NAs
+```{r}
+str(Taxi_OriginalData)
+Taxi_OriginalData = drop_na(Taxi_OriginalData) # We just lose few observations
+Number_Nas = colSums(is.na(Taxi_OriginalData)) 
+Number_Nas   # We don't have missing Values
+```
+# Transforming the data
+## Tranforming the categorical variables to factors
+```{r}
+# A code indicating the TPEP provider that provided the record.
+Taxi_OriginalData = mutate(Taxi_OriginalData, VendorID = factor(VendorID,levels = c(1,2),labels = c("Creative Mobile Technologies"," VeriFone")))
+
+# TLC Taxi Zone in which the taximeter was engaged
+Taxi_OriginalData = mutate(Taxi_OriginalData, PULocationID = factor(PULocationID))
+
+# TLC Taxi Zone in which the taximeter was disengaged
+Taxi_OriginalData = mutate(Taxi_OriginalData, DOLocationID = factor(DOLocationID))
+
+# Ratecode ID
+Taxi_OriginalData = mutate(Taxi_OriginalData, RatecodeID = factor(RatecodeID, levels = c(1,2,3,4,5,6),labels = c("Standard rate","JFK","Newark","Nassau or Westchester","Negotiated fare", "Group ride")))
+
+# Payment type
+Taxi_OriginalData = mutate(Taxi_OriginalData, payment_type = factor(payment_type, levels = c(1,2,3,4,5,6), labels = c("Credit card", "Cash","No charge","Dispute","Unknown", "Voided trip")))
+
+# Store and Forward
+Taxi_OriginalData = mutate(Taxi_OriginalData, store_and_fwd_flag = factor(store_and_fwd_flag, levels = c("N","Y"),c("NON Store and Forwar","Store and Forward")))
+```
+
+# Feature engineering
+## Turning the chr into actual date variables:
+```{r}
+# Splitting the char string to exctract Month Day Time and AM/PM (Fuken American/British notation)
+tpep_pickup_datetime_split = strsplit(Taxi_OriginalData$tpep_pickup_datetime, " ")
+pickup_Date = lapply(tpep_pickup_datetime_split, `[[`, 1)
+length_pickup_Date= length(pickup_Date)
+pickup_Date <- data.frame(matrix(unlist(pickup_Date), nrow=length_pickup_Date, byrow=T),stringsAsFactors=FALSE)
+names(pickup_Date) = "pickup_Date"
+
+
+pickup_Day = data.frame(as.numeric(str_split_fixed(pickup_Date$pickup_Date, "/", 3)[,2]))
+names(pickup_Day) = "pickup_Day"
+
+pickup_Month = data.frame(as.numeric(str_split_fixed(pickup_Date$pickup_Date, "/", 3)[,1]))
+names(pickup_Month) = "pickup_Month"
+
+
+pickup_Time_Time = map_chr(tpep_pickup_datetime_split, 2)
+length_Time_Time = length(pickup_Time_Time)
+pickup_Time_Time <- data.frame(matrix(pickup_Time_Time, nrow=length_Time_Time, byrow=T),stringsAsFactors=FALSE)
+names(pickup_Time_Time) = "pickup_Time_Time"
+
+
+pickup_Time_AMPM = map_chr(tpep_pickup_datetime_split, 3)
+length_AMPM= length(pickup_Time_AMPM)
+pickup_Time_AMPM <- data.frame(matrix(pickup_Time_AMPM, nrow=length_Time_Time, byrow=T),stringsAsFactors=FALSE)
+names(pickup_Time_AMPM) = "pickup_Time_AMPM"
+
+# Keeping just the hour to then transfor into categorical variable
+pickup_Time_hour = data.frame(as.numeric(str_split_fixed(pickup_Time_Time$pickup_Time_Time, ":", 3)[,1]))
+names(pickup_Time_hour) = "pickup_Time_hour"
+
+
+# Changing from AM/PM notation to Hour notation
+length_Data = length(pickup_Time_hour$pickup_Time_hour)
+for(i in 1:length_Data){
+  Logic_temp = (pickup_Time_AMPM$pickup_Time_AMPM[i] == "PM" & pickup_Time_hour$pickup_Time_hour[i] != 12)
+  if(Logic_temp)
+  {
+    pickup_Time_hour$pickup_Time_hour[i] = pickup_Time_hour$pickup_Time_hour[i] + 12
+    
+  }
+}
+
+
+# Adding the new Data and time columns
+Taxi_OriginalData = data.frame(Taxi_OriginalData,pickup_Month)
+Taxi_OriginalData = data.frame(Taxi_OriginalData,pickup_Time_hour)
+```
+
+Doing the same for dropoff
+```{r}
+# Splitting the char string to exctract Month Day Time and AM/PM (Fuken American/British notation)
+tpep_dropoff_datetime_split = strsplit(Taxi_OriginalData$tpep_dropoff_datetime, " ")
+
+
+
+dropoff_Date = lapply(tpep_dropoff_datetime_split, `[[`, 1)
+length_dropoff_Date= length(dropoff_Date)
+dropoff_Date <- data.frame(matrix(unlist(dropoff_Date), nrow=length_dropoff_Date, byrow=T),stringsAsFactors=FALSE)
+names(dropoff_Date) = "dropoff_Date"
+
+
+dropoff_Day = data.frame(as.numeric(str_split_fixed(dropoff_Date$dropoff_Date, "/", 3)[,2]))
+names(dropoff_Day) = "dropoff_Day"
+
+dropoff_Month = data.frame(as.numeric(str_split_fixed(dropoff_Date$dropoff_Date, "/", 3)[,1]))
+names(dropoff_Month) = "dropoff_Month"
+
+
+
+dropoff_Time_Time = lapply(tpep_dropoff_datetime_split, `[[`, 2)
+length_Time_Time= length(dropoff_Time_Time)
+dropoff_Time_Time <- data.frame(matrix(unlist(dropoff_Time_Time), nrow=length_Time_Time, byrow=T),stringsAsFactors=FALSE)
+names(dropoff_Time_Time) = "dropoff_Time_Time"
+
+dropoff_Time_AMPM = lapply(tpep_dropoff_datetime_split, `[[`, 3)
+length_AMPM= length(dropoff_Time_AMPM)
+dropoff_Time_AMPM <- data.frame(matrix(unlist(dropoff_Time_AMPM), nrow=length_AMPM, byrow=T),stringsAsFactors=FALSE)
+names(dropoff_Time_AMPM) = "dropoff_Time_AMPM"
+
+# Keeping just the hour to then transfor into categorical variable
+dropoff_Time_hour = data.frame(as.numeric(str_split_fixed(dropoff_Time_Time$dropoff_Time_Time, ":", 3)[,1]))
+names(dropoff_Time_hour) = "dropoff_Time_hour"
+
+
+# Changing from AM/PM notation to Hour notation
+length_Data = length(dropoff_Time_hour$dropoff_Time_hour)
+for(i in 1:length_Data){
+  Logic_temp = (dropoff_Time_AMPM$dropoff_Time_AMPM[i] == "PM" & dropoff_Time_hour$dropoff_Time_hour[i] != 12)
+  if(Logic_temp)
+  {
+    dropoff_Time_hour$dropoff_Time_hour[i] = dropoff_Time_hour$dropoff_Time_hour[i] + 12
+    
+  }
+}
+
+
+# Adding the new Data and time columns
+Taxi_OriginalData = data.frame(Taxi_OriginalData,dropoff_Month)
+
+Taxi_OriginalData = data.frame(Taxi_OriginalData,dropoff_Time_hour)
+
+Taxi_OriginalData = drop_na(Taxi_OriginalData) # Because some VendorID where misspecified # We only lose about 500 rows
+```
+
+
+## Adding the time of the ride as a new variable
+```{r}
+
+Pickup_DateTime  = as.POSIXct(Taxi_OriginalData$tpep_pickup_datetime,format="%m/%d/%Y %I:%M:%S %p")
+Dropoff_DateTime = as.POSIXct(Taxi_OriginalData$tpep_dropoff_datetime,format="%m/%d/%Y %I:%M:%S %p")
+
+TimeOfRide_Minutes = (as.numeric(Dropoff_DateTime-Pickup_DateTime))/60 # Time of the ride in minutes
+Taxi_OriginalData$TimeOfRide_Minutes = TimeOfRide_Minutes
+
+```
+
+# Clearing out the modified dataset
+## Dropping the additional columns
+```{r}
+# Dropping the old chr Date column
+Names_Columns_To_Drop = c("tpep_pickup_datetime", "tpep_dropoff_datetime", "dropoff_Month", "dropoff_Time_hour")
+
+Taxi_OriginalData[,Names_Columns_To_Drop] <- list(NULL) # Dropping the columns
+```
+
+## Clearing datapoints that are erroneous
+Dropping at observation that recorded a Dropoff time before the Pickup time
+```{r}
+Index_Row = which((Taxi_OriginalData$TimeOfRide_Minutes < 0))
+Taxi_OriginalData = Taxi_OriginalData[-Index_Row,]
+```
+
+
+# Turning Pickup Month and Pickup Time-hour into factors:
+```{r}
+Taxi_OriginalData = mutate(Taxi_OriginalData,pickup_Time_hour = factor(pickup_Time_hour))
+Taxi_OriginalData = mutate(Taxi_OriginalData,pickup_Month = factor(pickup_Month))
+
+```
+
+# Put the column we want to predict as the first one
+```{r}
+OrderdNames = c( "total_amount","passenger_count","trip_distance","fare_amount","extra","mta_tax","tip_amount", "tolls_amount","improvement_surcharge","TimeOfRide_Minutes",
+"VendorID","RatecodeID","store_and_fwd_flag","PULocationID","DOLocationID","payment_type","pickup_Month","pickup_Time_hour")
+Taxi_OriginalData = Taxi_OriginalData[,OrderdNames]
+```
+
+# Check the range of values for the quantitative variables to make sure the data was all coherent:
+```{r}
+Taxi_Quant = Taxi_OriginalData[,1:10]
+
+Ranges   = matrix(rep(0,20), nrow = 2)
+
+for(i in 1:10){
+  Temp_Range = range(Taxi_Quant[,i])
+  Ranges[1,i] = Temp_Range[1]
+  Ranges[2,i]   = Temp_Range[2]
+  }
+
+
+Ranges_DF = data.frame(Ranges)
+colnames(Ranges_DF) = names(Taxi_Quant)
+rownames(Ranges_DF) = c("Lower Limit","Upper Limit")
+
+print(Ranges_DF)
+
+```
+We can see how the Lower Limit of the total amount is negative, so there must have been an error in some datapoints.
+We have the same problem with the extra variable, the mta_tax, the tip_amount and the improvement_surcharge.
+Let's find out how many observations contain this errors:
+```{r}
+
+
+Errors_total_amount = sum(Taxi_OriginalData$total_amount <0)
+Errors_passenger_count = sum(Taxi_OriginalData$passenger_count == 0)
+Errors_extra = sum(Taxi_OriginalData$extra <0)
+Errors_mta_tax = sum(Taxi_OriginalData$mta_tax <0)
+Errors_tip_amount = sum(Taxi_OriginalData$tip_amount <0)
+Errors_improvement_surcharge = sum(Taxi_OriginalData$improvement_surcharge. <0)
+
+
+cat("Erroneous observations: ","\n")
+cat("total_amount:",Errors_total_amount," passenger_count: ",Errors_passenger_count," extra: ",Errors_extra," mta_tax :",Errors_mta_tax," tip_amount: ", Errors_tip_amount," improvement_surcharge: ",Errors_improvement_surcharge)
+```
+As we can see the errors are few. 
+We could hypotisise that the negative values are just an typo and take the abs(value) of the selected erroneous datapoints, but, since they are so few I prefer to just drop those observations from the data and not having to even bother making an hypothesis on how those negative values got there.
+## Clearing erroneous datapoints
+```{r}
+# Making a list that contains all the indexes that we want to drop and make sure that all values are unique
+ToDrop_All = c()
+ToDrop_All = append(ToDrop_All,which(Taxi_OriginalData$total_amount < 0))
+ToDrop_All = append(ToDrop_All,which(Taxi_OriginalData$passenger_count == 0))
+ToDrop_All = append(ToDrop_All,which(Taxi_OriginalData$extra < 0))
+ToDrop_All = append(ToDrop_All,which(Taxi_OriginalData$mta_tax < 0))
+ToDrop_All = append(ToDrop_All,which(Taxi_OriginalData$tip_amount < 0))
+ToDrop_All = append(ToDrop_All,which(Taxi_OriginalData$improvement_surcharge < 0))
+
+ToDrop_All = unique(ToDrop_All)
+
+# Dropping the wrong values
+Taxi_OriginalData = Taxi_OriginalData[-ToDrop_All,]
+
+
+
+
+# Check that all worked properly
+Errors_total_amount = sum(Taxi_OriginalData$total_amount <0)
+Errors_extra = sum(Taxi_OriginalData$extra <0)
+Errors_mta_tax = sum(Taxi_OriginalData$mta_tax <0)
+Errors_tip_amount = sum(Taxi_OriginalData$tip_amount <0)
+Errors_improvement_surcharge = sum(Taxi_OriginalData$improvement_surcharge. <0)
+
+TotalErrors = Errors_total_amount + Errors_extra + Errors_mta_tax + Errors_tip_amount + Errors_improvement_surcharge
+
+cat("Number of Errors = ", TotalErrors)
+```
+
+
+# Features Engeneering - Grouping poorly densed factor levels
+Since the factor variables PUlucation and DOlocation have many scarsly populated levels, when we try to cross validate it will probably happen that the training of the model takes place excluding some of the levels that could later be included in the testing set, then the lm function would not work and would give us an error.
+We have to group the levels of the factor so that there aren't as many and we don't get this problem.
+```{r}
+levels_bronx = c(3,18,20,31,32,46,47,51,58,59,60,69,78,81,94,119,126,136,147,159,167,168,169,174,182,183,184,185,199,200,208,212,213,220,235,240,241,242,247,248,250,254,259)
+labels_bronx = c('Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx','Bronx')
+
+levels_brooklyn = c(11,14,17,21,22,25,26,29,33,34,35,36,37,39,40,49,52,54,55,61,62,63,65,66,67,71,72,76,77,80,85,89,91,97,106,108,111,112,123,133,149,150,154,155,165,177,178,181,188,189,190,195,210,217,222,225,227,228,255,256,257)
+labels_brooklyn = c('Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn','Brooklyn')
+
+
+levels_manhattan = c(4,12,13,24,41,42,43,45,48,50,68,74,75,79,87,88,90,100,103,104,105,107,113,114,116,120,125,127,128,137,140,141,142,143,144,148,151,152,153,158,161,162,163,164,166,170,186,194,202,209,211,224,229,230,231,232,233,234,236,237,238,239,243,244,246,249,261,262,263)
+labels_manhattan = c('Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan','Manhattan')
+
+levels_Queens = c(2,7,8,9,10,15,16,19,27,28,30,38,53,56,57,64,70,73,82,83,86,92,93,95,96,98,101,102,117,121,122,124,129,130,131,132,134,135,138,139,145,146,157,160,171,173,175,179,180,191,192,193,196,197,198,201,203,205,207,215,216,218,219,223,226,252,253,258,260)
+labels_Queens = c('Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens','Queens')
+
+levels_Other = c(264,265,5,6,23,44,84,99,109,110,115,118,156,172,176,187,204,206,214,221,245,251,1)
+labels_Other = c("Others","Others","Others","Others","Others","Others","Others","Others","Others","Others","Others","Others","Others","Others","Others","Others","Others","Others","Others","Others","Others","Others","Others")
+
+All_labels = c(labels_bronx,labels_brooklyn,labels_manhattan,labels_Queens,labels_Other)
+
+All_levels = c(levels_bronx,levels_brooklyn,levels_manhattan,levels_Queens,levels_Other)
+
+
+Taxi_OriginalData = mutate(Taxi_OriginalData,DOLocationID = factor(DOLocationID, levels = All_levels, labels = All_labels) )
+
+
+Taxi_OriginalData = mutate(Taxi_OriginalData,PULocationID = factor(PULocationID, levels = All_levels, labels = All_labels))
+
+
+```
+# Exporting the processed data
+```{r}
+#write.csv(Taxi_OriginalData, file = "ProcessedDataset.csv")
+saveRDS(Taxi_OriginalData, file = "Datasets/ProcessedDataset.rds")
+
+```
