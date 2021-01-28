@@ -1,0 +1,705 @@
+---
+title: "Impact of Covid-19 on Airbnb"
+subtitle: "An analysis of the City of London"
+author: "Team B2"
+output:
+  html_document:
+    toc: true # table of content true
+    toc_depth: 4  # upto three depths of headings (specified by #, ## and ###)
+    number_sections: False  # if you want number sections at each table header
+  pdf_document: default
+---
+
+\newpage
+
+# Create the dataset containing the combined listings data file.
+
+We have downloaded from [InsideAirbnb](http://insideairbnb.com/get-the-data.html "InsideAirbnb Website") the datasets containing the listings data ("listing.csv.gz") we have then selected just the columns that interested us. Added a date to them and merged them into a single tibble so that we could export it as an R file and it could be used by different analysts. Before exporting the tibble we have formatted each column as appropriate (e.g. setting the **timestamp** as a col_date() type).
+
+Here below you can see the process followed for the creation of this dataset.
+
+## Importing the InsideAirbnb data.
+As a first step we imported the different datasets downloaded from insideAirbnb. We then imported them into R specifying what column types they were so that the process would be faster and also more precise.
+We have noticed that the **listings.csv.gz** file for july 2020 did not have the prices data in it. so we also imported the **listing.csv** dataset and used that to join the price column to the gz file.
+
+```{r eval = F}
+library(tidyverse)
+rm(list = ls())
+cols_listings = cols(id = col_integer(),
+                                            name = col_character(),
+                                            host_id = col_integer(),
+                                            host_name = col_character(),
+                                            #neighbourhood_group = col_character(),
+                                            neighbourhood = col_factor(),
+                                            latitude = col_number(),
+                                            longitude = col_number(),
+                                            room_type = col_factor(),
+                                            price = col_number(),
+                                            minimum_nights = col_integer(),
+                                            number_of_reviews = col_integer(),
+                                            last_review = col_date(),
+                                            reviews_per_month = col_number(),
+                                            calculated_host_listings_count = col_integer(),
+                                            availability_365 = col_integer()
+                                            )
+
+
+listings_2019_01 <- read_csv("listing_gz/2019_01_listings.csv", col_types = cols_listings)
+listings_2019_02 <- read_csv("listing_gz/2019_02_listings.csv", col_types = cols_listings)
+listings_2019_03 <- read_csv("listing_gz/2019_03_listings.csv", col_types = cols_listings)
+listings_2019_04 <- read_csv("listing_gz/2019_04_listings.csv", col_types = cols_listings)
+listings_2019_05 <- read_csv("listing_gz/2019_05_listings.csv", col_types = cols_listings)
+listings_2019_06 <- read_csv("listing_gz/2019_06_listings.csv", col_types = cols_listings)
+listings_2019_07 <- read_csv("listing_gz/2019_07_listings.csv", col_types = cols_listings)
+listings_2019_08 <- read_csv("listing_gz/2019_08_listings.csv", col_types = cols_listings)
+listings_2019_09 <- read_csv("listing_gz/2019_09_listings.csv", col_types = cols_listings)
+listings_2019_10 <- read_csv("listing_gz/2019_10_listings.csv", col_types = cols_listings)
+listings_2019_11 <- read_csv("listing_gz/2019_11_listings.csv", col_types = cols_listings)
+listings_2019_12 <- read_csv("listing_gz/2019_12_listings.csv", col_types = cols_listings)
+
+listings_2020_01 <- read_csv("listing_gz/2020_01_listings.csv", col_types = cols_listings)
+listings_2020_02 <- read_csv("listing_gz/2020_02_listings.csv", col_types = cols_listings)
+listings_2020_03 <- read_csv("listing_gz/2020_03_listings.csv", col_types = cols_listings)
+listings_2020_04 <- read_csv("listing_gz/2020_04_listings.csv", col_types = cols_listings)
+listings_2020_05 <- read_csv("listing_gz/2020_05_listings.csv", col_types = cols_listings)
+listings_2020_06 <- read_csv("listing_gz/2020_06_listings.csv", col_types = cols_listings)
+listings_2020_07 <- read_csv("listing_gz/2020_07_listings.csv", col_types = cols_listings)
+listings_2020_08 <- read_csv("listing_gz/2020_08_listings.csv", col_types = cols_listings)
+listings_2020_09 <- read_csv("listing_gz/2020_09_listings.csv", col_types = cols_listings)
+listings_2020_10 <- read_csv("listing_gz/2020_10_listings.csv", col_types = cols_listings)
+
+listings_2018_12 <- read_csv("listing_gz/2018_12_listings.csv", col_types = cols_listings)
+listings_2018_11 <- read_csv("listing_gz/2018_11_listings.csv", col_types = cols_listings)
+listings_2018_10 <- read_csv("listing_gz/2018_10_listings.csv", col_types = cols_listings)
+
+
+# gz file does not have price
+listings_2020_07_NON_GZ <- read_csv("listing_gz/2020_07_listings_NON_GZ.csv", col_types = cols_listings)
+```
+
+## Selecting the appropriate columns
+
+After downloading the data and importing it into R we decided on what columns to keep for our analysis. At first we left more columns in and then after exploring the data we started leaving out columns that we thought were not useful for our analysis.
+In this chunk we have also fixed the problem mentioned above with 07/2020 prices.
+
+```{r eval = FALSE}
+cols_all = names(listings_2019_01)
+
+cols_to_keep = c("id","host_response_rate","host_acceptance_rate","host_is_superhost","host_total_listings_count","neighbourhood","neighbourhood_cleansed","latitude","longitude","room_type","price","minimum_nights_avg_ntm","availability_30","number_of_reviews_ltm","first_review")
+
+listings_2019_01 = listings_2019_01[,cols_to_keep]
+listings_2019_02 = listings_2019_02[,cols_to_keep]
+listings_2019_03 = listings_2019_03[,cols_to_keep]
+listings_2019_04 = listings_2019_04[,cols_to_keep]
+listings_2019_05 = listings_2019_05[,cols_to_keep]
+listings_2019_06 = listings_2019_06[,cols_to_keep]
+listings_2019_07 = listings_2019_07[,cols_to_keep]
+listings_2019_08 = listings_2019_08[,cols_to_keep]
+listings_2019_09 = listings_2019_09[,cols_to_keep]
+listings_2019_10 = listings_2019_10[,cols_to_keep]
+listings_2019_11 = listings_2019_11[,cols_to_keep]
+listings_2019_12 = listings_2019_12[,cols_to_keep]
+
+listings_2020_01 = listings_2020_01[,cols_to_keep]
+listings_2020_02 = listings_2020_02[,cols_to_keep]
+listings_2020_03 = listings_2020_03[,cols_to_keep]
+listings_2020_04 = listings_2020_04[,cols_to_keep]
+listings_2020_05 = listings_2020_05[,cols_to_keep]
+listings_2020_06 = listings_2020_06[,cols_to_keep]
+
+
+# GZ file does not have price
+listings_2020_07_NON_GZ = listings_2020_07_NON_GZ[,c("price","id")]
+cols_to_keep_2020_07 = cols_to_keep[cols_to_keep != "price"]
+listings_2020_07 = listings_2020_07[,cols_to_keep_2020_07]
+listings_2020_07 = left_join(listings_2020_07, listings_2020_07_NON_GZ,by =("id"="id"))
+
+
+listings_2020_08 = listings_2020_08[,cols_to_keep]
+listings_2020_09 = listings_2020_09[,cols_to_keep]
+listings_2020_10 = listings_2020_10[,cols_to_keep]
+```
+
+## Adding the timestamp, merging and saving the data
+
+After the processing was done, we added the timestamp for each month and we merged all the datasets into a unique tibble. We then proceeded to remove the Hotels level from the $room\_type$ variable since this level was not present across the whole dataset.
+Finally we exported the dataset.
+
+```{r eval = FALSE}
+# Adding timestamp
+listings_2019_01$timestamp = as.Date("2019-01-01")
+listings_2019_02$timestamp = as.Date("2019-02-01")
+listings_2019_03$timestamp = as.Date("2019-03-01")
+listings_2019_04$timestamp = as.Date("2019-04-01")
+listings_2019_05$timestamp = as.Date("2019-05-01")
+listings_2019_06$timestamp = as.Date("2019-06-01")
+listings_2019_07$timestamp = as.Date("2019-07-01")
+listings_2019_08$timestamp = as.Date("2019-08-01")
+listings_2019_09$timestamp = as.Date("2019-09-01")
+listings_2019_10$timestamp = as.Date("2019-10-01")
+listings_2019_11$timestamp = as.Date("2019-11-01")
+listings_2019_12$timestamp = as.Date("2019-12-01")
+
+listings_2020_01$timestamp = as.Date("2020-01-01")
+listings_2020_02$timestamp = as.Date("2020-02-01")
+listings_2020_03$timestamp = as.Date("2020-03-01")
+listings_2020_04$timestamp = as.Date("2020-04-01")
+listings_2020_05$timestamp = as.Date("2020-05-01")
+listings_2020_06$timestamp = as.Date("2020-06-01")
+listings_2020_07$timestamp = as.Date("2020-07-01")
+listings_2020_08$timestamp = as.Date("2020-08-01")
+listings_2020_09$timestamp = as.Date("2020-09-01")
+listings_2020_10$timestamp = as.Date("2020-10-01")
+
+all_data = rbind(listings_2019_01,listings_2019_02)
+all_data = rbind(all_data,listings_2019_03)
+all_data = rbind(all_data,listings_2019_04)
+all_data = rbind(all_data,listings_2019_05)
+all_data = rbind(all_data,listings_2019_06)
+all_data = rbind(all_data,listings_2019_07)
+all_data = rbind(all_data,listings_2019_08)
+all_data = rbind(all_data,listings_2019_09)
+all_data = rbind(all_data,listings_2019_10)
+all_data = rbind(all_data,listings_2019_11)
+all_data = rbind(all_data,listings_2019_12)
+
+all_data = rbind(all_data,listings_2020_01)
+all_data = rbind(all_data,listings_2020_02)
+all_data = rbind(all_data,listings_2020_03)
+all_data = rbind(all_data,listings_2020_04)
+all_data = rbind(all_data,listings_2020_05)
+all_data = rbind(all_data,listings_2020_06)
+all_data = rbind(all_data,listings_2020_07)
+all_data = rbind(all_data,listings_2020_08)
+all_data = rbind(all_data,listings_2020_09)
+all_data = rbind(all_data,listings_2020_10)
+
+all_data = all_data %>%  na.omit()
+
+
+all_data = all_data %>% filter(room_type != "Hotel room")
+
+all_data$neighbourhood = as.factor(all_data$neighbourhood_cleansed)
+
+# Saving the data
+#saveRDS(all_data, file = "clean_gz.rds")
+```
+
+\newpage
+
+# Import the dataset created previously
+
+```{r results = "hyde", message = F,warning=F}
+library(tidyverse) # Importing the tidyverse library
+rm(list = ls())
+listing_data = readRDS(file = "clean_gz.rds")
+```
+
+
+# Monthly occupancy by Area
+
+## Dividing London greater area into two areas
+
+The first step for creating this visualization has been to divide the boroughs of London into 2 different sets: *Central Area* and *Peripheral Area*.
+
+```{r results = "hyde", message = F,warning=F}
+
+countryside = c("Enfield","Redbridge","Bexley")
+cityside = c("Kensington and Chelsea","City of London","Westminster")
+month_list = unique(listing_data$timestamp)
+temp_data = filter(listing_data,neighbourhood %in% c(cityside,countryside))
+
+library(plyr)
+temp_data = temp_data %>% mutate(neighbourhood = revalue(neighbourhood, c("Westminster" = "Cityside","City of London" = "Cityside","Kensington and Chelsea" = "Cityside")))
+temp_data = temp_data %>% mutate(neighbourhood = revalue(neighbourhood, c("Enfield" = "Countryside","Redbridge" = "Countryside","Bexley" = "Countryside")))
+detach(package:plyr)  
+
+temp_data$neighbourhood = droplevels(temp_data$neighbourhood)
+
+data_perc = temp_data %>% group_by(timestamp,neighbourhood) %>% summarise(avg = mean(number_of_reviews_ltm))
+```
+
+## Calculating the change in occupancy
+
+After dividing the area into two we have calculated the increase or decrease in number of bookings (Using the number of reviews received as a proxy) for the months present in the dataset. We have also calculated the percentage change from month to month to have a clearer view of the difference between the two areas.
+
+```{r results = "hyde", message = F,warning=F}
+
+data_perc$perc = 0
+                                 
+time = unique(temp_data$timestamp)
+
+
+data_perc_city = data_perc %>% filter(neighbourhood == "Cityside")
+data_perc_country = data_perc %>% filter(neighbourhood == "Countryside")
+count  =1
+for (i in 1:length(time))        {
+  if (count > 1){
+    
+
+    
+    data_perc_city$perc[count] = (data_perc_city$avg[count] - data_perc_city$avg[count-1])/data_perc_city$avg[count-1]
+    
+    data_perc_country$perc[count] = (data_perc_country$avg[count] - data_perc_country$avg[count-1])/data_perc_country$avg[count-1]
+    
+  }
+  count = count+1
+    
+  }
+                                                                          
+data_perc = rbind(data_perc_country,data_perc_city)
+
+
+
+library(plyr)
+temp_data = temp_data %>% mutate(neighbourhood = revalue(neighbourhood, c("Cityside" = "Central London","Countryside" = "Peripheral Area")))
+
+
+data_perc = data_perc %>%  mutate(neighbourhood = revalue(neighbourhood, c("Cityside" = "Central London","Countryside" = "Peripheral Area")))
+detach(package:plyr)  
+
+
+                                                                                   
+```
+
+## Using the above data to visualize the change in trend for the two areas
+
+We have then plotted the change in occupancy on a month by month basis in both nominal terms and then in percentage terms.
+
+```{r results = "hyde", message = F,warning=F}
+
+library(RColorBrewer)
+
+gr  =temp_data %>% group_by(timestamp,neighbourhood) %>% summarise(avg = mean(number_of_reviews_ltm))
+
+
+p1 = ggplot(gr,aes(x=timestamp, y = avg,group = neighbourhood)) + geom_point(aes(x=timestamp, y = avg,color = neighbourhood))   
+p1 = p1+ geom_line(mapping = aes(color = neighbourhood),linetype = "dashed")    + scale_colour_brewer(palette = "Set2")                                                     
+
+
+
+p1 = p1  + ggtitle("Monthly Occupancy by Area") + ylab("Average Occupancy") + xlab("")  + theme(legend.title = element_blank()) + theme(legend.title = element_blank()) + theme_classic()+ theme(legend.title = element_blank())+
+    geom_vline(xintercept=as.Date("2020-03-01"), colour="red") +
+    geom_text(aes(x=as.Date("2020-01-15"), label="          Covid-19", y=10), colour="black", angle=0, text=element_text(size=2),hjust = 0) + theme(legend.position = "none")
+
+p2 =  ggplot(data_perc,aes(x=timestamp, y = perc,color = neighbourhood)) + geom_line(linetype = "dashed") + geom_point() + ylab("Percentage Change") + xlab("Date") + theme(legend.title = element_blank())  + theme_classic()+ theme(legend.title = element_blank()) +
+    geom_vline(xintercept=as.Date("2020-03-01"), colour="red") + scale_colour_brewer(palette = "Set2")                                                     
+
+library(patchwork)
+
+p1/p2 + plot_layout(guides = "collect")
+```
+
+
+## Summary of the Visualization
+
+### WHY
+
+We have decided to create this visualization because we noticed that the change in occupancy due to Covid-19 was not even throughout the whole London area but it seemed from our Exploratory Data Analysis that the Peripheral area of London was less affected than the central one.
+
+### WHAT 
+
+The data we have visualized is an augmented version of the dataset provided by InsideAirBnb, were we have added the monthly change in occupancy for the two different areas we have defined and subsequently we have calculated the percentage change so to have a true zero and so that we could more easily tell the different impact in the two areas even though they started from different levels of occupancy.
+
+### HOW
+
+This visualization is composed by two parts:
+1. Nominal change in average occupancy
+2. Percentage change in average occupancy
+
+For both visualizations we have used points and dashed lines as markers, to signal that we had monthly data but that there is a connection between one month and the following one.
+We have also chosen a color palette that was not only consistent throughout the visualization, but also consistent with the rest of our presentation.
+In both parts the information is encoded using position on a common scale, that is the best magnitude channel for quantitative variables, since it lets us see easily how each point compares in magnitude on the scale. 
+We also used the hue (color) channel to encode the Area information, so that we could easily compare the two different areas.
+Lastly we added a consistent vertical line at the date in which Covid-19 started impacting London. We have chosen red as a color for this line so that it would pop out from the rest of the figure and draw the observer's attention to this specific point in time (pre-attentive feature).
+
+\newpage
+
+```{r  eval = F,echo=F, include =  F}
+### NOT INCLUDED AS PART OF OUR 3 MAIN VIS
+
+
+library(extrafont)
+loadfonts(device = "win")
+library(ggmap)
+
+max_lat = max(listing_data$latitude)
+min_lat = min(listing_data$latitude)
+max_long = max(listing_data$longitude)
+min_long = min(listing_data$longitude)
+
+month_list = unique(listing_data$timestamp)
+mean_lat = (min_lat + max_lat)/2
+mean_long = (min_long + max_long)/2
+london_center = c(mean_long,mean_lat)
+
+
+google_API_key = "AIzaSyAM8Grf76edjlNQSng1GLiEIZHWT8SsyF8"
+register_google(key = google_API_key)
+
+
+
+plot_list = list()
+
+sting_time = substr(as.character(month_list),1,7)
+count = 1
+for (month_x in month_list){
+  
+  current_listings = listing_data %>% filter(timestamp == month_x)
+  current_listings_id = current_listings %>% select(id)
+  
+  
+  tot_listing = dim(current_listings_id)[1]
+  
+
+  
+  if (count != 1) {
+    previous_month = month_list[count-1]
+    
+    previous_listings = listing_data %>% filter(timestamp == previous_month)
+    previous_listings_id = previous_listings %>% select(id)
+    
+    # How many listing_ids where already present the period before ?
+    differencial_ids = mapply(setdiff,current_listings_id,previous_listings_id)
+    
+    
+    current_in_previous = tot_listing - sum(current_listings_id$id %in% differencial_ids[,1])
+    
+    # new listings
+    new_listings = tot_listing - current_in_previous
+    
+    new_listings_ID = current_listings_id$id[current_listings_id$id %in% differencial_ids[,1]]
+    
+    new_listins_data = current_listings %>% filter(id %in% new_listings_ID)
+    
+    not_new_listins_data = current_listings %>% filter(!(id %in% new_listings_ID))
+    
+    have_left_IDs = mapply(setdiff,new_listings_ID,differencial_ids)
+    
+    # listings that have left
+    #have_left = listings_count_vector$tot_listing[count] - current_in_previous
+
+    
+    have_left_data = previous_listings %>% filter(id %in% have_left_IDs)
+
+    p1 = ggmap(get_map(location = c(lon = london_center),zoom = "auto", maptype = c("toner-hybrid"), source = c("stamen"),  force = F))
+    
+    
+    #p1 = ggmap(get_googlemap(center = london_center, zoom = 10,maptype ="roadmap")) 
+    
+    p1 = p1 +
+      #scale_y_continuous(limits = c(51.35,51.7)) +
+    theme(axis.title=element_blank(),axis.text=element_blank(),axis.ticks=element_blank(),legend.position = c(0.80,0.05),legend.key=element_blank(),legend.title = element_blank(),legend.background=element_blank(),legend.text = element_text(color = "white",size = 12,family = "Verdana")) + guides(colour = guide_legend(override.aes = list(size=10))) +
+      
+      
+     
+      
+      # Make map darker
+      geom_rect(xmin = -0.8, xmax = 0.8, ymin = 50.5, ymax = 52.5,alpha = .15,color ="black",fill="black") +
+      
+      
+      
+    geom_point(data = not_new_listins_data, mapping = aes(x = longitude, y = latitude,fill = "Existing Listings"),size = 2,alpha = 0.2, color = "#1f78b4") +
+      geom_point(data = new_listins_data, mapping = aes(x = longitude, y = latitude,fill="New-Listings"),size = 3,alpha = 0.1, color = "#fb9a99") +
+      
+      
+    scale_color_manual(values = colors) +
+      guides(fill = guide_legend(override.aes = list(alpha = 1,color = c("#1f78b4","#fb9a99"))))+
+      
+      #geom_point(data = have_left_data, mapping = aes(x = longitude, y = latitude),size = 5,alpha = 0.01, color = "red") + 
+      annotate("text",x = 0.2, y = 51.73, label = sting_time[count], fontface =2, size = 4,color = "white",family = "Verdana")  
+    
+    
+    
+    
+    
+    # If covid Happened, add a lable to signale it
+    if (count>=15){
+      
+      p1 = p1 + annotate("text", x = 0.205, y = 51.75 , label = "After-COVID-19", fontface =2, size = 4,color = "white",family = "Verdana") 
+    }
+
+    
+        if (count<=14){
+      
+      p1 = p1 + annotate("text", x = 0.202, y = 51.75, label = "Before-COVID-19", fontface =2, size = 4,color = "white",family = "Verdana") 
+    }
+    
+      plot_list[[count-1]] = p1
+
+    
+  }
+  
+  
+  
+  # print(count)
+  count = count +1
+  
+
+}
+
+
+# Save plots to png Makes a separate file for each plot.
+for (i in 1:21) {
+    file_name = paste("New_Listings/map_plot", i, ".tiff", sep="")
+    tiff(file_name)
+    print(plot_list[[i]])
+    dev.off()
+    print(i)
+}
+
+
+```
+
+
+
+# Animated Occupancy Cloropleth Map
+
+##  Reading data for London bouroughs
+
+The first step in this visualization has been to gather data about the geometrical forms of the City of London with details about the latitude and longitude of each area.
+These are colled **shapefiles** and we gathered them from the [London Datastore](https://data.london.gov.uk/dataset/statistical-gis-boundary-files-london "London Datastore Website")
+
+```{r results = "hyde", message = F,warning=F}
+
+library(RColorBrewer)
+neighbourhood_mean_prices = ungroup(listing_data %>% group_by(neighbourhood) %>% summarise(mean_price = mean(price),median_occupancy = median(number_of_reviews_ltm)))
+
+library(rgdal)
+lnd <- readOGR(dsn = "data", layer = "london_sport")
+
+lndn_copy = lnd
+
+lnd@data = left_join(lnd@data, neighbourhood_mean_prices, by = c('name' = 'neighbourhood'))
+library(tmap) 
+
+```
+
+
+## Creating the chloropleth map and animation
+
+After gathering the data we set up a loop in which we joined the monthly occupancy data with the $shapefile$, created the visualization and stored it in an array.
+
+We repeated this process in the loop for each month we had in our dataset.
+
+```{r results = "hyde", message = F,warning=F}
+
+# NOTE: The second map: Prices was not used in the presentation
+plot_list1 = list()
+plot_list2 = list()
+
+plot_list3 = list() # For the executive summary
+
+sting_time = substr(as.character(month_list),1,7)
+count = 1
+for (month_x in month_list){
+  
+  current_listings = listing_data %>% filter(timestamp == month_x)
+
+  if (count != 1) {
+    #have_left = listings_count_vector$tot_listing[count] - current_in_previous
+    
+    neighbourhood_mean_prices = ungroup(current_listings %>% group_by(neighbourhood) %>% summarise(mean_price = mean(price),median_occupancy = 2*median(number_of_reviews_ltm)))
+    
+    fresh_data = lndn_copy
+
+    fresh_data@data = left_join(fresh_data@data, neighbourhood_mean_prices, by = c('name' = 'neighbourhood'))
+    
+    
+
+p1 = qtm(shp = fresh_data, fill = "mean_price", fill.palette = "Blues",fill.title = "Price",
+         fill.style = "fixed",fill.breaks = c(40,60,80,100,120,140,160,180,200)
+         )+ tm_legend(legend.position = c("right", "bottom"),
+          main.title = " ",
+          main.title.position = "left") +
+           tm_layout(frame = FALSE)
+
+p2 = qtm(shp = fresh_data, fill = "median_occupancy", fill.palette = "Blues",fill.title = "Occupancy",fill.style = "fixed",fill.breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12))+ tm_legend(legend.position = c("right", "bottom"),
+          main.title = " ",
+          main.title.position = "left") +tm_layout(frame = FALSE)
+
+p3 = qtm(shp = fresh_data, fill = "median_occupancy", fill.palette = "Blues",fill.title = "Occupancy",fill.style = "fixed",fill.breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12)) +
+tm_legend(legend.position = c("right", "bottom"),
+          main.title = " ",
+          main.title.position = "left") +tm_layout(frame = FALSE) 
+
+
+if (count <= 21){p3 = p3+ tm_legend(show=FALSE)}
+p3 = p3 + tm_credits(sting_time[count], position = c(0.60,0.875),  size = 0.7, col = "black",fontfamily = "Verdana")
+
+p1 = p1 + tm_credits(sting_time[count], position = c(0.80,0.875),  size = 1.3, col = "black",fontfamily = "Verdana")
+p2 = p2 + tm_credits(sting_time[count], position = c(0.80,0.875),  size = 1.3, col = "black",fontfamily = "Verdana")
+    
+    
+    
+    
+    
+    # If covid Happened, add a lable to signale it
+    if (count>=15){
+      
+      p1 = p1 + tm_credits("After Covid-19", position = c(0.69,0.925),  size = 1.3, col = "black",fontfamily = "Verdana")
+      p2 = p2 + tm_credits("After Covid-19", position = c(0.69,0.925),  size = 1.3, col = "black",fontfamily = "Verdana")
+    }
+
+    
+        if (count<=14){
+      
+   p1 = p1 + tm_credits("Before Covid-19", position = c(0.653,0.925),  size = 1.3, col = "black",fontfamily = "Verdana")
+   p2 =p2+ tm_credits("Before Covid-19", position = c(0.653,0.925),  size = 1.3, col = "black",fontfamily = "Verdana")
+    }
+    
+      plot_list1[[count-1]] = p1
+      plot_list2[[count-1]] = p2
+      plot_list3[[count-1]] = p3
+
+    
+  }
+  #print(count)
+  count = count +1
+
+}
+
+
+
+
+
+# Save plots to png Makes a separate file for each plot.
+for (i in 1:21) {
+    file_name_1 = paste("cloro_price/cloropleth_map_plot", i, ".tiff", sep="")
+    file_name_2 = paste("cloro_occupancy/cloropleth_map_plot", i, ".tiff", sep="")
+    
+    tiff(file_name_1)
+    print(plot_list1[[i]])
+    dev.off()
+    
+    tiff(file_name_2)
+    print(plot_list2[[i]])
+    dev.off()
+    
+    #print(i)
+}
+
+
+#### EXAMPLE PLOT
+excecutive_summary = c(plot_list3[1],plot_list3[2],plot_list3[20],plot_list3[21])
+
+explot = tmap_arrange(
+  excecutive_summary,
+  ncol = 2,
+  nrow = 2,
+  widths = NA,
+  heights = NA,
+  sync = FALSE,
+  asp = 0,
+  outer.margins = 0.00
+) 
+print(explot)
+```
+
+
+
+## Summary of the Visualization
+
+### WHY
+
+We have decided to create this visualization because we wanted to explore two things:
+1. How did Covid-19 impact the Occupancy on london as a whole.
+2. Was the pandemic effect evenly spread across the whole area or was it more pronounced in certain areas.
+
+### WHAT 
+
+The data that we have visualized makes us of the London areas **shapefiles** provided by the British government and the InsideAirbnb dataset that we have created at the beginning of our work. 
+
+### HOW
+
+We decided to use a cloropleth map and temporal partitioning to show how the Occupancy evolved in the months before and after the pandemic and how this evolution was different across different spatial areas. 
+
+Since we had sequential data, we have used color brightness as a channel to encode the occupancy in the different areas. We have selected a color palette that would be in line with our other visualizations and with the entire flow of our presentation. We decided to remove borders and axis and to insert the legend into the image frame so to maximize the data/ink ratio while still keeping all the useful information.
+We also fixed the scale across the whole temporal partitions so that we would have continuity across the whole visualization.
+
+
+\newpage
+
+# Importing the reviews data with added listing information
+This dataset was composed from the **reviews.csv** file in the InsideAirBnb website, joined with the data inside the **listings** database we have created at the beginning of this markdown file.
+
+This dataset contains the daily number of reviews for each listing and was used to create the visualization that compared the daily occupancy across different room types.
+
+```{r results = "hyde", message = F,warning=F}
+
+reviews = readRDS("reviews_data_joined.rds")
+```
+  
+
+# Creating the Daily occupancy for Room Type
+
+The first step for creating this visualization has been to calculate the average daily number of reviews across the two listing groups: **Shared Accomodation** and **Entire Home|Apt**. This two groups were derived from Airbnb's original room types by merging together the data contained in the **Shared room** and **Private Room** levels. We have decided to make this union because in both cases guests would be sharing a home with strangers in Covid-19 times.
+
+
+## Creating the daily occupancy chart
+
+The first chart in the visualization is a linegraph that shows how the trend of occupancy across the two years of data.
+
+```{r results = "hyde", message = F,warning=F}
+
+reviews_date = reviews %>% group_by(date) %>% summarise(num_reviews = sum(ones))# %>% filter(date > as.Date("2019-04-01"))
+
+p0 = ggplot(reviews_date, mapping = aes(x=date,y=num_reviews)) +
+  stat_smooth(aes(y=num_reviews, x=date,color = "#1f78b4"), method = lm, formula = y ~ poly(x, 9), se = FALSE,linetype = "dashed")   + ggtitle("Daily Occupancy by Room Type") + ylab("Mean Occupancy") + xlab(" ") + theme(legend.position = c(5, 5)) + geom_line(aes(x=date, y=num_reviews,color = "#fb9a99"))
+
+
+p0 = p0  + theme_classic()+ theme(legend.title = element_blank()) +
+    geom_vline(xintercept=as.Date("2020-03-01"), colour="red")+
+    geom_text(aes(x=as.Date("2020-01-01"), label="              First Covid-19 Cases", y=2200), colour="black", angle=0, text=element_text(size=11),hjust = 0) + theme(legend.position = "none") 
+
+
+#p0
+```
+
+## Creating the weekly proportion chart
+
+The second chart is a stacked 100% bar chart that shows how the market share of **Entire Home|Apt** risen after the pandemic began.
+
+```{r results = "hyde", message = F,warning=F}
+
+reviews_room_type = reviews %>% group_by(date,room_type) %>% summarise(num_reviews = sum(ones))
+reviews_room_type$Week <- as.Date(cut(reviews_room_type$date, "2 week"))
+
+reviews_room_type_gr_week = reviews_room_type %>% group_by(Week,room_type) %>% summarise(num_reviews_week = mean(num_reviews))
+
+p11 = ggplot(reviews_room_type_gr_week, mapping = aes(x=Week,y=num_reviews_week,fill = room_type)) + 
+geom_bar(position="fill", stat="identity", width=20)+ ggtitle(" ") + ylab("Proportion Occupancy") + xlab("Date") + theme_classic()+ theme(legend.title = element_blank())+ scale_fill_manual(values=c("#1f78b4", "#fb9a99")) +
+  geom_abline(slope=0, intercept=0.25,  col = "white",lty=2) +
+  geom_abline(slope=0, intercept=0.5,  col = "white",lty=2) +
+  geom_abline(slope=0, intercept=0.75,  col = "white",lty=2) +
+    geom_vline(xintercept=as.Date("2020-03-01"), colour="red")
+
+
+```
+
+```{r results = "hyde", message = F,warning=F}
+library(patchwork)
+print((p0 / p11))
+```
+
+## Summary of the Visualization
+
+### WHY
+
+We have decided to create this visualization bacause we wanted to explore how the occupancy changed across the two years of data prior to the current date, and in particular we wanted to analyze if the impact has been different for **Entire Homes|Apt** and **Shared Accommodations**.
+
+### WHAT 
+
+The data that we have used for this vis is a combination of the dataset built at the beginning of this R file and an aggregated version of the **reviews.csv** file provided by InsideAirBnb.
+Merging this two datasets was essential for adding the additional information of the **room_type** on the listings considered.
+
+### HOW
+
+We decided to use a combination of a lineachart with added fitted line and a staked 100% bar chart to show, not only how the daily trend evolved across the time, but also how the partition of that trend evolved between **Entire Home|Apt** and **Shared Accommodation**.
+
+The fitted line in the above chart was added so that the viewer could have a clearer understanding of the trend without focusing much on the weekly spikes.
+
+In the below chart we kept the same colors scheme as with the other visualizations so to ensure consistency. We also added horizontal dashed lines to indicate the 25,50,and 75% marks. We decided to use a staked 100% bar chart so that we could see how the share of the Mean occupancy shown in the chart above was divided into the two levels of **Entire Home|Apt** and **Shared Accomodation**.
+
+Finally we added a vertical line on both that signals the First Covid-19 cases in London so that the user attention would be drawn to that area and we added a label to signal what that specific line refers to but we did not repete the label so to avoid useless visual cluttering.
+
